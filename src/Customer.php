@@ -55,24 +55,41 @@ class Customer
         $this->_ipAddress = $ip_address;
     }
 
-    public function addCardToCustomerVault($security_token, $payment_token)
+    public function addCardToCustomerVault($security_token, $payment_token, $three_ds_data = null)
     {
         $data['customer_vault'] = 'add_customer';
         $data['security_key'] = $security_token;
         $data['payment_token'] =  $payment_token;
 
+        // Add 3DS data if provided
+        if ($three_ds_data !== null) {
+            $data['cardholder_auth'] = $three_ds_data['cardholder_auth'];
+            $data['cavv'] = $three_ds_data['cavv'];
+            $data['xid'] = $three_ds_data['xid'];
+            $data['three_ds_version'] = $three_ds_data['three_ds_version'];
+            $data['directory_server_id'] = $three_ds_data['directory_server_id'];
+        }
+
         return Api::post($data);
     }
 
-    public function updateCardFromCustomerVault($security_token, $customer_vault_id, $payment_token)
+    public function updateCardFromCustomerVault($security_token, $customer_vault_id, $payment_token, $three_ds_data = null)
     {
         $data['customer_vault'] = 'update_customer';
         $data['security_key'] = $security_token;
         $data['customer_vault_id'] = $customer_vault_id;
         $data['payment_token'] =  $payment_token;
 
-        return Api::post($data);
+        // Add 3DS data if provided
+        if ($three_ds_data !== null) {
+            $data['cardholder_auth'] = $three_ds_data['cardholder_auth'];
+            $data['cavv'] = $three_ds_data['cavv'];
+            $data['xid'] = $three_ds_data['xid'];
+            $data['three_ds_version'] = $three_ds_data['three_ds_version'];
+            $data['directory_server_id'] = $three_ds_data['directory_server_id'];
+        }
 
+        return Api::post($data);
     }
 
     public function deleteCardFromCustomerVault($security_token, $customer_vault_id)

@@ -1,4 +1,3 @@
-
 # PayGen Payment Gateway Integration in PHP
 
 ## Installation
@@ -18,6 +17,54 @@ Then add the following scripts before closing `<head>` tag
 ```
 
 Then add the following before closing `<body>` tag
+
+**For 3D Secure Authentication**
+```html
+<script>
+    const gateway = Gateway.create('CHECKOUT_PUBLIC_SECURITY_TOKEN_HERE');
+    const threeDSecure = gateway.get3DSecure();
+    
+    // Create 3DS UI instance
+    const threeDSecureUI = threeDSecure.createUI({
+        containerId: 'threeds-container'
+    });
+
+    // Start authentication when needed
+    function start3DSAuth(cardData) {
+        threeDSecureUI.start({
+            amount: 'AMOUNT',  // e.g. '10.00'
+            currency: 'CURRENCY', // e.g. 'USD'
+            card: cardData
+        });
+    }
+
+    // Handle 3DS authentication result
+    threeDSecureUI.on('authenticated', (result) => {
+        const threeDSData = {
+            cardholder_auth: result.status === 'Y' ? 'verified' : 'attempted',
+            cavv: result.cavv,
+            xid: result.xid,
+            three_ds_version: result.version,
+            directory_server_id: result.dsTransId
+        };
+        
+        // Add 3DS data to your form
+        let checkout = document.getElementById("checkout-form");
+        Object.entries(threeDSData).forEach(([key, value]) => {
+            let input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "three_ds_data[" + key + "]";
+            input.value = value;
+            checkout.appendChild(input);
+        });
+    });
+
+    // Handle any errors
+    threeDSecureUI.on('error', (error) => {
+        console.error('3DS Error:', error);
+    });
+</script>
+```
 
 **For Kount Fraud Detection**
 
@@ -131,7 +178,7 @@ Then add the following before closing `<body>` tag
 
 ## Integration Guide
 
-### Pay using credit card
+### Pay using credit card with 3DS
 ```php
 // Create a new customer
 $customer = new Mopalgen\Paygen\Customer();
@@ -157,13 +204,28 @@ $customer->setShippingAddress(
 );
 $customer->setIPAddress($_SERVER['REMOTE_ADDR']);
 
+// Prepare 3DS data from the authentication
+$three_ds_data = isset($_POST['three_ds_data']) ? $_POST['three_ds_data'] : null;
+
 // Initiate Payment Processor
 $paymentProcessor = new Mopalgen\Paygen\Init(PRIVATE_SECURITY_TOKEN_HERE, $customer);
 
 if(ENABLE_KOUNT_FRAUD_DETECTION) {
-    $response = $paymentProcessor->createOrder($order_details, $_POST['payment_method'], $_POST['payment_token'], $_POST['transaction_session_id']);
+    $response = $paymentProcessor->createOrder(
+        $order_details, 
+        $_POST['payment_method'], 
+        $_POST['payment_token'], 
+        $_POST['transaction_session_id'],
+        $three_ds_data
+    );
 } else {
-    $response = $paymentProcessor->createOrder($order_details, $_POST['payment_method'], $_POST['payment_token']);
+    $response = $paymentProcessor->createOrder(
+        $order_details, 
+        $_POST['payment_method'], 
+        $_POST['payment_token'],
+        "",
+        $three_ds_data
+    );
 }
 ```
 
@@ -222,7 +284,7 @@ Please store customer_vault_id to use the stored card in future.
 
 Also, please note we are using payment_token instead card credentials for security purpose.
 
-### Pay using saved credit card
+### Pay using saved credit card with 3DS
 ```php
 // Create a new customer
 $customer = new Mopalgen\Paygen\Customer();
@@ -248,13 +310,28 @@ $customer->setShippingAddress(
 );
 $customer->setIPAddress($_SERVER['REMOTE_ADDR']);
 
+// Prepare 3DS data from the authentication
+$three_ds_data = isset($_POST['three_ds_data']) ? $_POST['three_ds_data'] : null;
+
 // Initiate Payment Processor
 $paymentProcessor = new Mopalgen\Paygen\Init(SECURITY_KEY, $customer);
 
 if(ENABLE_KOUNT_FRAUD_DETECTION) {
-    $response = $paymentProcessor->createOrderUsingSavedCard($order_details, $_POST['payment_method'], $_POST['customer_vault_id'], $_POST['transaction_session_id']);
+    $response = $paymentProcessor->createOrderUsingSavedCard(
+        $order_details, 
+        $_POST['payment_method'], 
+        $_POST['customer_vault_id'], 
+        $_POST['transaction_session_id'],
+        $three_ds_data
+    );
 } else {
-    $response = $paymentProcessor->createOrderUsingSavedCard($order_details, $_POST['payment_method'], $_POST['customer_vault_id']);
+    $response = $paymentProcessor->createOrderUsingSavedCard(
+        $order_details, 
+        $_POST['payment_method'], 
+        $_POST['customer_vault_id'],
+        "",
+        $three_ds_data
+    );
 }
 ```
 Here instead of 'payment_token', we are using 'customer_vault_id' to use the stored card for payment.
@@ -299,7 +376,7 @@ Handle $response and save related data accordingly.
 - 225 : Invalid card security code.
 - 226 : Invalid PIN.
 - 240 : Call issuer for further information.
-- 250 : The customer’s card has been reported as lost or stolen by the cardholder 
+- 250 : The customer's card has been reported as lost or stolen by the cardholder 
 - 251 : Lost card.
 - 252 : Stolen card.
 - 253 : Fraudulent card.
@@ -361,3 +438,32 @@ Handle $response and save related data accordingly.
 ### Demo Project
 
 You can find a basic implimentation of the payment gateway here: https://github.com/mopalgen/paygen-demo
+
+### Add card to customer vault with 3DS
+```php
+$customer = new Mopalgen\Paygen\Customer();
+
+// Prepare 3DS data from the authentication
+$three_ds_data = isset($_POST['three_ds_data']) ? $_POST['three_ds_data'] : null;
+
+$response = $customer->addCardToCustomerVault(
+    SECURITY_KEY, 
+    $_POST['payment_token'],
+    $three_ds_data
+);
+```
+
+### Update saved card in customer vault with 3DS
+```php
+$customer = new Mopalgen\Paygen\Customer();
+
+// Prepare 3DS data from the authentication
+$three_ds_data = isset($_POST['three_ds_data']) ? $_POST['three_ds_data'] : null;
+
+$response = $customer->updateCardFromCustomerVault(
+    SECURITY_KEY,
+    $_POST['customer_vault_id'], 
+    $_POST['payment_token'],
+    $three_ds_data
+);
+```

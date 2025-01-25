@@ -16,16 +16,16 @@ class Init
         $this->_customer = $customer;
     }
 
-    public function createOrder($order_details, $payment_method, $payment_token, $transaction_session_id = "")
+    public function createOrder($order_details, $payment_method, $payment_token, $transaction_session_id = "", $three_ds_data = null)
     {
         $processor = new Action();
-        return $processor->sale($this->_securityToken, $this->_customer, $order_details, $payment_method, $payment_token, $transaction_session_id);
+        return $processor->sale($this->_securityToken, $this->_customer, $order_details, $payment_method, $payment_token, $transaction_session_id, $three_ds_data);
     }
 
-    public function createOrderUsingSavedCard($order_details, $payment_method, $customer_vault_id, $transaction_session_id = "")
+    public function createOrderUsingSavedCard($order_details, $payment_method, $customer_vault_id, $transaction_session_id = "", $three_ds_data = null)
     {
         $processor = new Action();
-        return $processor->saleUsingCustomerVault($this->_securityToken, $this->_customer, $order_details, $payment_method, $customer_vault_id, $transaction_session_id);
+        return $processor->saleUsingCustomerVault($this->_securityToken, $this->_customer, $order_details, $payment_method, $customer_vault_id, $transaction_session_id, $three_ds_data);
     }
 
     public function createRefund($transaction_id, $amount)

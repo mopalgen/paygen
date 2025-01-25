@@ -5,7 +5,7 @@ namespace Mopalgen\Paygen;
 class Action
 {
     // Transaction sales are submitted and immediately flagged for settlement.
-    public function sale($security_token, $customer, $order_detail, $payment_method, $payment_token, $transaction_session_id = "")
+    public function sale($security_token, $customer, $order_detail, $payment_method, $payment_token, $transaction_session_id = "", $three_ds_data = null)
     {
         $data['type'] = 'sale';
         // Security token
@@ -13,6 +13,16 @@ class Action
         // Payment Details
         $data['payment_method'] = $payment_method;
         $data['payment_token'] = $payment_token;
+        
+        // Add 3DS data if provided
+        if ($three_ds_data !== null) {
+            $data['cardholder_auth'] = $three_ds_data['cardholder_auth'];
+            $data['cavv'] = $three_ds_data['cavv'];
+            $data['xid'] = $three_ds_data['xid'];
+            $data['three_ds_version'] = $three_ds_data['three_ds_version'];
+            $data['directory_server_id'] = $three_ds_data['directory_server_id'];
+        }
+        
         // Kount Fraud Detection
         if ($transaction_session_id != "") {
             $data['transaction_session_id'] = $transaction_session_id;
@@ -71,7 +81,7 @@ class Action
         return Api::post($data);
     }
 
-    public function saleUsingCustomerVault($security_token, $customer, $order_detail, $payment_method, $customer_vault_id, $transaction_session_id = "")
+    public function saleUsingCustomerVault($security_token, $customer, $order_detail, $payment_method, $customer_vault_id, $transaction_session_id = "", $three_ds_data = null)
     {
         $data['type'] = 'sale';
         // Security token
@@ -79,6 +89,16 @@ class Action
         // Payment Details
         $data['payment_method'] = $payment_method;
         $data['customer_vault_id'] = $customer_vault_id;
+        
+        // Add 3DS data if provided
+        if ($three_ds_data !== null) {
+            $data['cardholder_auth'] = $three_ds_data['cardholder_auth'];
+            $data['cavv'] = $three_ds_data['cavv'];
+            $data['xid'] = $three_ds_data['xid'];
+            $data['three_ds_version'] = $three_ds_data['three_ds_version'];
+            $data['directory_server_id'] = $three_ds_data['directory_server_id'];
+        }
+        
         // Kount Fraud Detection
         if ($transaction_session_id != "") {
             $data['transaction_session_id'] = $transaction_session_id;
